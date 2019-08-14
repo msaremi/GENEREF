@@ -23,8 +23,8 @@ print_timed("Algorithm: %s" % algorithm)
 
 results = dict([(network, {
     "auroc":            np.zeros((num_values, num_datasets)),
-    "auroc_p_value":    np.zeros((num_values, num_datasets)),
     "aupr":             np.zeros((num_values, num_datasets)),
+    "auroc_p_value":    np.zeros((num_values, num_datasets)),
     "aupr_p_value":     np.zeros((num_values, num_datasets)),
     "score":            np.zeros((num_values, num_datasets)),
 }) for network in networks])
