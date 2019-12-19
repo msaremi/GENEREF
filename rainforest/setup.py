@@ -9,5 +9,5 @@ files = ["_criterion.pyx",
 
 setup(
     ext_modules=cythonize(["rainforest/" + s for s in files], gdb_debug=True),
-    include_dirs=[numpy.get_include()], requires=['numpy', 'pandas']
+    include_dirs=[numpy.get_include()], requires=['numpy', 'pandas', 'scipy', 'joblib']
 )

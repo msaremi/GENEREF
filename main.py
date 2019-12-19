@@ -1,97 +1,85 @@
+## The main algorithm
+
 import os
 import numpy as np
-from project import Manager
-from utils import print_timed
-import pandas as pd
+from datetime import datetime as dt
+from algorithm import Predictor
+from itertools import permutations
+from networkdata import DataManager, WeightedNetwork
+from config import model, alpha_values, beta_values, max_level, skip_existing_preds
+from config import datasets_path, predictions_path
+import sys
 
-# Name of the algorithm and the results folder
-# See Manager.generate_predictions for the details of the configuration
-algorithm = "GENEREF (MF+TS)"
-datasets_path = os.path.join(os.getcwd(), "data", "datasets")
-result_path = os.path.join(os.getcwd(), "data", "results", algorithm)
-os.makedirs(result_path, exist_ok=True)
 
-networks = ["insilico_size100_%d" % (i + 1) for i in range(5)]
-datasets = range(10)
-alpha_values = np.linspace(-25, 10, 60)
+def modulate(data: np.ndarray):
+    data_min = np.min(data, axis=0)
+    data_max = np.max(data, axis=0)
+    return (data - data_min) / (data_max - data_min + sys.float_info.min)
 
-num_networks = len(networks)
-num_datasets = len(datasets)
-num_values = alpha_values.shape[0]
 
-print_timed("Algorithm: %s" % algorithm)
+def get_regularization_matrix(w: WeightedNetwork):
+    w = w.get_redistributed_network()
+    w = w.data
+    reg = 1 - (1 - w ** (2 ** alpha_value)) ** (2 ** beta_value)
+    return reg
 
-results = dict([(network, {
-    "auroc":            np.zeros((num_values, num_datasets)),
-    "aupr":             np.zeros((num_values, num_datasets)),
-    "auroc_p_value":    np.zeros((num_values, num_datasets)),
-    "aupr_p_value":     np.zeros((num_values, num_datasets)),
-    "score":            np.zeros((num_values, num_datasets)),
-}) for network in networks])
 
-for dataset in datasets:
-    print_timed("Dataset %d" % dataset, depth=1)
+for network in model.networks:
+    print(dt.now(), "Network", network)
 
-    dataset_path = os.path.join(datasets_path, str(dataset))
+    for dataset in model.datasets:
+        print(dt.now(), "\t", "Dataset", dataset)
+        dataset_path = os.path.join(datasets_path, dataset)
+        prediction_path = os.path.join(predictions_path, dataset)
+        data_manager = DataManager(dataset_path, network)
 
-    for network in networks:
-        print_timed(network, depth=2)
+        with data_manager:
+            num_experiments = len(data_manager.experiments)
 
-        for i, alpha_value in enumerate(alpha_values):
-            print_timed("alpha = %g (%g%%)" % (alpha_value, ((i + 0.5) / num_values * 100)), depth=3,
-                        start='\r', end='')
+            for i in range(1, min(max_level, num_experiments + 1)):
+                first_level = i == 1
+                second_level = i == 2
+                keys = list(permutations(range(num_experiments), i))
 
-            with Manager(dataset_path, network) as manager:
-                manager.generate_predictions(alpha_value)
-                score = manager.score
+                for key in keys:
+                    print(dt.now(), "\t\t", "Key", key)
+                    current_experiment_id = key[-1]
+                    current_experiment = data_manager.experiments[current_experiment_id]
+                    alphas = [0] if first_level else alpha_values
+                    betas = [0] if first_level else beta_values
 
-                for k, metric in enumerate(results[network]):
-                    results[network][metric][i, dataset] = score[k]
+                    for alpha_value in alphas:
+                        for beta_value in betas:
+                            print(dt.now(), "\t\t\t", "Params", (alpha_value, beta_value))
 
-        print('\r', end='')
+                            if skip_existing_preds and (alpha_value, beta_value) + key in data_manager.predictions:
+                                break
 
-for network in networks:
-    for metric in results[network]:
-        data = pd.DataFrame(results[network][metric].T, columns=alpha_values)
-        file_name = os.path.join(result_path, "%s_%s.tsv" % (network, metric))
-        data.to_csv(file_name, sep="\t")
+                            if first_level:
+                                regularization = None
+                            else:
+                                # key_alpha_beta = (0, 0) if second_level else (alpha_value, beta_value)
+                                # d = np.mean(
+                                #     [data_manager.predictions[(key_alpha_beta if x > 1 else (0, 0)) + key[:x]].data for
+                                #      x in range(1, len(key))], axis=0)
+                                # regularization_network = WeightedNetwork(d)
+                                regularization_network = data_manager.predictions[key_alpha_beta + key[:-1]]
+                                regularization = get_regularization_matrix(regularization_network)
 
-# for network in networks:
-#     print_timed("Network %d" % network, depth=1)
-#
-#     for i, val in enumerate(alpha_values):
-#         print_timed("Iteration %d out of %d: param = %g" % (i + 1, num_values, val), depth=2)
-#         result = 0.0
-#
-#         for dataset in datasets:
-#             dataset_path = os.path.join(datasets_path, str(dataset), str(network + 1))
-#             results_path = os.path.join(dataset_path, "results", algorithm)
-#             os.makedirs(results_path, exist_ok=True)
-#             results = ResultPack(num_values, num_datasets)
-#
-#             print_timed("Round %d out of %d (%g%%)" % (j + 1, num_datasets, ((j + 1) / num_datasets * 100)), depth=3, start='\r', end='')
-#
-#             with Manager(dataset_path, network) as manager:
-#                 manager.generate_predictions(val)
-#                 results[i, j] = manager.score
-#
-#         print('\r', end='')
-#
-#     results.save(os.path.join(results_path, "%s.csv"))
-# # plt.show()
-# # for i in range(5):
-# #     mean, std = np.mean(results[:, :, i], axis=1), np.std(results[:, :, i], axis=1)
-# # # plt.plot(vals, mean, label="GENEREF (MF+TS)")
-# # # plt.fill_between(vals, mean - std / 2, mean + std / 2, color='orange', alpha=0.4)
-# #     print(mean)
-#     # print(std)
-# # plt.legend()
-# # winsound.MessageBeep()
-# # plt.show()
-#
-# # plt.plot([vals[0], vals[-1]], [base.genie3multifactorial.auroc.expectations[network]] * 2, label=r"GENIE3")
-# # plt.plot([vals[0], vals[-1]], [base.genie3timeseries.auroc.expectations[network]] * 2, label=r"GENIE3-like timeseries")
-# # plt.grid(True)
-# # plt.title(r'Network %d' % (network + 1), fontsize=14)
-# # plt.xlabel(r'log₂ρ', fontsize=14)
-# # plt.ylabel(r'AUROC', fontsize=14)
+                            predictor = Predictor(
+                                trunk_size=100,
+                                n_trees=model.learner_params.n_trees,
+                                max_features=model.learner_params.max_features,
+                                callback=lambda j, n:
+                                print('\r%s' % dt.now(), "\t\t\t\t", "Subproblem %d out of %d" % (j + 1, n), flush=True,
+                                      end='')
+                            )
+                            predictor.fit(current_experiment, regularization)
+                            prediction = predictor.network
+                            prediction_data = prediction.data
+                            prediction_data = modulate(prediction_data)
+                            prediction = WeightedNetwork(prediction_data)
+                            data_manager.predictions[(alpha_value, beta_value) + key] = prediction
+                            print('\r', end='')
+
+                    data_manager.predictions.flush()
