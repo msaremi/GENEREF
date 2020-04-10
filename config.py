@@ -38,8 +38,12 @@ score_names = {
 	"aupr_p_value": "aupr_p_value"
 }
 
-alpha_values = np.linspace(-2, 7, 13)
-beta_values = np.linspace(-7, 2, 13)
+#
+# Set the following hyper-parameters for your own use
+#
+
+alpha_log2_values = np.linspace(-2, 7, 13)
+beta_log2_values = np.linspace(-7, 2, 13)
 # alpha_values = np.linspace(-2, 7, 5)
 # beta_values = np.linspace(-7, 2, 5)
 
@@ -52,13 +56,14 @@ beta_values = np.linspace(-7, 2, 13)
 
 max_level = 4
 
-model = models["dream4"]
+model_name = "dream4"
+model = models[model_name]
+
 score_name = score_names["score"]
-# Don't you want to re-generate already made predictions? Set this flag to True
+# Do you want not to re-generate already made predictions? Set this flag to True
 skip_existing_preds = False
 # Dataset root
 data_path = os.path.join(os.getcwd(), "data", model.name)
-
 
 datasets_path = os.path.join(os.getcwd(), "data", model.name, "datasets")
 predictions_path = os.path.join(os.getcwd(), "data", model.name, "predictions")

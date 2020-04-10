@@ -415,15 +415,3 @@ class DataManager:
     def predictions(self):
         return self._predictions
 
-    # def set_prediction(self, key: Union[str, tuple], prediction: WeightedNetwork):
-    #     self._predictions[key] = prediction
-    #
-    # def get_prediction(self, key: Union[str, tuple]) -> WeightedNetwork:
-    #     if key not in self._predictions:
-    #         self._predictions[key] = WeightedNetwork(self._loader.load_prediction(key))
-    #
-    #     return self._predictions[key]
-
-    # def flush(self):
-    #     for key, prediction in self._predictions:
-    #         self._saver.save_prediction(prediction.data, key)
