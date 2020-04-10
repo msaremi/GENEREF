@@ -44,15 +44,6 @@ score_names = {
 
 alpha_log2_values = np.linspace(-2, 7, 13)
 beta_log2_values = np.linspace(-7, 2, 13)
-# alpha_values = np.linspace(-2, 7, 5)
-# beta_values = np.linspace(-7, 2, 5)
-
-# (0, 2)
-# alpha_values = [0.475]
-# beta_values = [-0.49]
-# (2, 0)
-# alpha_values = [-0.845]
-# beta_values = [1.055]
 
 max_level = 4
 
