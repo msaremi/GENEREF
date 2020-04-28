@@ -26,7 +26,7 @@ For example, for the DREAM4 networks, we defined the following in [config.py](co
 		name="dream4",
 		networks=["insilico_size100_%d" % (i + 1) for i in range(5)],
 		datasets=['%d' % i for i in range(10)],
-		evaluator=DREAM4Evaluator,
+		evaluator=DREAM4S100Evaluator,
 		learner_params=__(
 			n_trees=100,
 			max_features=1/7
@@ -41,7 +41,7 @@ For this model, we used ten dataset packs that are stored in ten folders ['0'](d
 So we defined the names of these packs using `datasets=['%d' % i for i in range(10)],`.
 The `evaluator` of the results is not used by the main algorithm. Yet, if one wants to measure, AUROC, AUPR, etc.
 they will need an evaluator class. 
-`evaluator=DREAM4Evaluator` defines the class `DREAM4Evaluator` to be the class that can evaluate the results
+`evaluator=DREAM4S100Evaluator` defines the class `DREAM4S100Evaluator` to be the class that can evaluate the results
 constructed for the DREAM4 networks.
 The `learner_params` parameter sets the parameters of the random forests that are used as the solvers.
 These parameters are the number of trees in each forest `n_trees`, 
@@ -368,8 +368,9 @@ Gets the confidence matrix that is produced using the `fit` method.
 
  ## Evaluator Class
  The `Evaluator` class is an abstract class that calculates performance metrics of a predicted network, based on a goldstandard network.
- Two primarily child classes are `DREAM4Evaluator` and `DREAM5Evaluator`.
- The `DREAM4Evaluator` is our own implementation, while the `DREAM5Evaluator` is the re-implementation of the DREAM5's 
+ Two primarily child classes are `DREAM4S10Evaluator`, `DREAM4S100Evaluator`, and `DREAM5Evaluator`.
+ The `DREAM4S10Evaluator` and `DREAM4S100Evaluator` are our own implementation based on [G Stolovitzky et.al](https://nyaspubs.onlinelibrary.wiley.com/doi/abs/10.1111/j.1749-6632.2009.04497.x), 
+ while the `DREAM5Evaluator` is the re-implementation of the DREAM5's 
  original evaluation algorithm that is originally implemented in MATLAB.
  
  ### Methods and Properties

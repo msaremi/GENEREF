@@ -1,4 +1,5 @@
 import numpy as np
+import pandas as pd
 import os
 from scipy.stats import norm, beta
 from scipy.special import gammainc
@@ -6,6 +7,7 @@ from sklearn.metrics import roc_curve, roc_auc_score, precision_recall_curve, au
 
 
 class Evaluator:
+    """Abstract class. Use one of the derived classes"""
     def __init__(self, network: str):
         self._network = int(network[-1])
         self._labels = None
@@ -65,7 +67,9 @@ class DREAM5Evaluator(Evaluator):
     @classmethod
     def _load_data(cls, network, metric):
         if (network, metric) not in cls._data:
-            path = os.path.abspath(os.path.join(os.getcwd(), "resources", "Network%d_%s.npy" % (network, metric)))
+            path = os.path.abspath(os.path.join(
+                os.getcwd(), "resources", cls.__name__, "Network%d_%s.npy" % (network, metric)
+            ))
             cls._data[(network, metric)] = np.load(path)
 
         return cls._data[(network, metric)]
@@ -89,27 +93,45 @@ class DREAM5Evaluator(Evaluator):
 
 
 class DREAM4Evaluator(Evaluator):
-    _auroc_means = [0.5, 0.5, 0.5, 0.5, 0.5]
-    _auroc_stds = [0.021921, 0.018493, 0.02086, 0.02004, 0.020945]
-    _aupr_x_maxs = [0.0193143, 0.0277462, 0.02165965, 0.02343955, 0.02152605]
-    _aupr_h_maxs = [263.620981387474, 222.364217252398, 255.935098206657, 240.841777084961, 261.668070766632]
-    _aupr_bs = [31700.820267609, 8719.82765760784, 8568.45635982301, 10659.2365536708, 5082.12445262662]
-    _aupr_cs = [1.74599609375, 1.53232421875, 1.5033203125, 1.55517578125, 1.39970703125]
+    """Abstract class. Use either of DREAM4S10Evaluator and DREAM4S100Evaluator"""
+    _data = None
+
+    @classmethod
+    def _load_data(cls):
+        if cls._data is None:
+            path = os.path.abspath(os.path.join(
+                os.getcwd(), "resources", cls.__name__, "metadata.csv"
+            ))
+            cls._data = pd.read_csv(path, index_col=0)
+
+        return cls._data
 
     @property
     def auroc_p_value(self):
-        mu = type(self)._auroc_means[self._network - 1]
-        sigma = type(self)._auroc_stds[self._network - 1]
+        data = type(self)._load_data()
+        mu = data['auroc_mean'][self._network - 1]
+        sigma = data['auroc_std'][self._network - 1]
         return norm.cdf(1 - self.auroc, mu, sigma)
 
     @property
     def aupr_p_value(self):
-        b = type(self)._aupr_bs[self._network - 1]
-        c = type(self)._aupr_cs[self._network - 1]
-        x_max = type(self)._aupr_x_maxs[self._network - 1]
-        h_max = type(self)._aupr_h_maxs[self._network - 1]
+        data = type(self)._load_data()
+        b = data['aupr_b'][self._network - 1]
+        c = data['aupr_c'][self._network - 1]
+        x_max = data['aupr_x_max'][self._network - 1]
+        h_max = data['aupr_h_max'][self._network - 1]
         x = self.aupr
         x_por = 0.835
         x2 = x_max * x_por + x * (1 - x_por)
         w = h_max * (b ** (-1 / c)) / c
         return w * gammainc(b * (x2 - x_max) ** c, 1 / c)
+
+
+class DREAM4S10Evaluator(DREAM4Evaluator):
+    """DREAM4 Size 10 networks evaluator"""
+    pass
+
+
+class DREAM4S100Evaluator(DREAM4Evaluator):
+    """DREAM4 Size 100 networks evaluator"""
+    pass

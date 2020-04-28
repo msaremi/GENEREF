@@ -1,6 +1,6 @@
 from networkdata import DataManager, WeightedNetwork
 from algorithm import Predictor
-from evaluation import Evaluator, DREAM4Evaluator
+from evaluation import Evaluator, DREAM4S100Evaluator
 import numpy as np
 
 
@@ -8,7 +8,7 @@ class Manager:
     def __init__(self, laboratory_path: str, network: str, save_predictions: bool = True):
         self._save_predictions = save_predictions
         self._data_manager = DataManager(laboratory_path, network)
-        self._evaluator = DREAM4Evaluator(network)
+        self._evaluator = DREAM4S100Evaluator(network)
 
     # @property
     # def save_predictions(self):

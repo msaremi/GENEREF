@@ -1,15 +1,26 @@
 import os
 import numpy as np
-from evaluation import DREAM4Evaluator, DREAM5Evaluator
+from evaluation import DREAM4S10Evaluator, DREAM4S100Evaluator, DREAM5Evaluator
 from types import SimpleNamespace as __
+import sys
 
 # Two models are present in this work, the DREAM4 models and the DREAM5 models
 models = {
-	"dream4": __(
-		name="dream4",
+	"dream4_size10": __(
+		name="dream4_size10",
+		networks=["insilico_size10_%d" % (i + 1) for i in range(5)],
+		datasets=['%d' % i for i in range(2)],
+		evaluator=DREAM4S10Evaluator,
+		learner_params=__(
+			n_trees=100,
+			max_features=1/7
+		)
+	),
+	"dream4_size100": __(
+		name="dream4_size100",
 		networks=["insilico_size100_%d" % (i + 1) for i in range(5)],
 		datasets=['%d' % i for i in range(10)],
-		evaluator=DREAM4Evaluator,
+		evaluator=DREAM4S100Evaluator,
 		learner_params=__(
 			n_trees=100,
 			max_features=1/7
@@ -45,9 +56,9 @@ score_names = {
 alpha_log2_values = np.linspace(-2, 7, 13)
 beta_log2_values = np.linspace(-7, 2, 13)
 
-max_level = 4
+max_level = -1
 
-model_name = "dream4"
+model_name = "dream4_size100"
 model = models[model_name]
 
 score_name = score_names["score"]
@@ -56,5 +67,12 @@ skip_existing_preds = False
 # Dataset root
 data_path = os.path.join(os.getcwd(), "data", model.name)
 
+# Where the datasets are stored
 datasets_path = os.path.join(os.getcwd(), "data", model.name, "datasets")
+# Where the predictions will be saved
 predictions_path = os.path.join(os.getcwd(), "data", model.name, "predictions")
+# Where the results will be saved
+results_path = os.path.join(os.getcwd(), "data", model.name, "results")
+
+if max_level == -1:
+	max_level = sys.maxsize

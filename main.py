@@ -26,9 +26,6 @@ def get_regularization_matrix(w: WeightedNetwork):
     return reg
 
 
-if max_level == -1:
-    max_level = sys.maxsize
-
 for network in model.networks:  # For DREAM4 there are 5 networks each with 100 genes
     print(dt.now(), "Network", network)
 
@@ -36,7 +33,7 @@ for network in model.networks:  # For DREAM4 there are 5 networks each with 100 
         print(dt.now(), "\t", "Dataset", dataset)
         dataset_path = os.path.join(datasets_path, dataset)
         prediction_path = os.path.join(predictions_path, dataset)
-        data_manager = DataManager(dataset_path, network)  # data_manager load the current dataset folder
+        data_manager = DataManager(dataset_path, network, prediction_path)  # data_manager load the current dataset folder
 
         with data_manager:
             num_experiments = len(data_manager.experiments)
