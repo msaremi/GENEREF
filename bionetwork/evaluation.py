@@ -1,17 +1,33 @@
-import numpy as np
-import pandas as pd
 import os
-from scipy.stats import norm, beta
-from scipy.special import gammainc
-from sklearn.metrics import roc_curve, roc_auc_score, precision_recall_curve, auc
+import numpy as np
+from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
 
 
 class Evaluator:
     """Abstract class. Use one of the derived classes"""
+
+    _probs = {}
+    _xs = None
+
     def __init__(self, network: str):
         self._network = int(network[-1])
         self._labels = None
         self._scores = None
+
+    @classmethod
+    def _load_probs(cls, metric):
+        if metric not in cls._probs:
+            resource_path = os.path.abspath(os.path.join(os.getcwd(), "resources", cls.__name__))
+            path = os.path.join(resource_path, "%s.npy" % metric.upper())
+            cls._probs[metric] = np.load(path)
+
+            if cls._xs is None:
+                path = os.path.join(resource_path, "Xs.npy")
+                cls._xs = np.load(path) \
+                    if os.path.exists(path) \
+                    else np.linspace(0, 1, cls._probs[metric].shape[1])
+
+        return cls._probs[metric], cls._xs
 
     def fit(self, labels, scores):
         idx = ~np.eye(labels.shape[0], dtype=bool)
@@ -32,14 +48,6 @@ class Evaluator:
         return auc(recall, precision)
 
     @property
-    def auroc_p_value(self):
-        raise Exception("This property is abstract")
-
-    @property
-    def aupr_p_value(self):
-        raise Exception("This property is abstract")
-
-    @property
     def score(self):
         return -np.mean([np.log10(self.auroc_p_value), np.log10(self.aupr_p_value)])
 
@@ -47,10 +55,19 @@ class Evaluator:
     def score_aupr(self):
         return -np.log10(self.aupr_p_value)
 
+    @property
+    def auroc_p_value(self):
+        probs, xs = type(self)._load_probs("AUROC")
+        return np.interp(self.auroc, xs, probs[self._network - 1, :])
+
+    @property
+    def aupr_p_value(self):
+        probs, xs = type(self)._load_probs("AUPR")
+        return np.interp(self.aupr, xs, probs[self._network - 1, :])
+
 
 class DREAM5Evaluator(Evaluator):
-    _data = {}
-
+    """Dream5 Network Evaluation"""
     def fit(self, labels, scores):
         labels[np.eye(labels.shape[0], dtype=bool)] = 0
         regulators = np.any(labels, axis=1)
@@ -64,67 +81,10 @@ class DREAM5Evaluator(Evaluator):
         self._labels = np.asarray(gs_labels, dtype=np.int32).ravel()
         self._scores = np.asarray(gs_scores, dtype=np.float64).ravel()
 
-    @classmethod
-    def _load_data(cls, network, metric):
-        if (network, metric) not in cls._data:
-            path = os.path.abspath(os.path.join(
-                os.getcwd(), "resources", cls.__name__, "Network%d_%s.npy" % (network, metric)
-            ))
-            cls._data[(network, metric)] = np.load(path)
-
-        return cls._data[(network, metric)]
-
-    @staticmethod
-    def _probability(x, y, a):
-        dx = x[1] - x[0]
-        return np.sum((x >= a) * y * dx)
-
-    @property
-    def auroc_p_value(self):
-        data = self._load_data(self._network, "AUROC")
-        auroc = self.auroc
-        return self._probability(data[0, :], data[1, :], auroc)
-
-    @property
-    def aupr_p_value(self):
-        data = self._load_data(self._network, "AUPR")
-        aupr = self.aupr
-        return self._probability(data[0, :], data[1, :], aupr)
-
 
 class DREAM4Evaluator(Evaluator):
     """Abstract class. Use either of DREAM4S10Evaluator and DREAM4S100Evaluator"""
-    _data = None
-
-    @classmethod
-    def _load_data(cls):
-        if cls._data is None:
-            path = os.path.abspath(os.path.join(
-                os.getcwd(), "resources", cls.__name__, "metadata.csv"
-            ))
-            cls._data = pd.read_csv(path, index_col=0)
-
-        return cls._data
-
-    @property
-    def auroc_p_value(self):
-        data = type(self)._load_data()
-        mu = data['auroc_mean'][self._network - 1]
-        sigma = data['auroc_std'][self._network - 1]
-        return norm.cdf(1 - self.auroc, mu, sigma)
-
-    @property
-    def aupr_p_value(self):
-        data = type(self)._load_data()
-        b = data['aupr_b'][self._network - 1]
-        c = data['aupr_c'][self._network - 1]
-        x_max = data['aupr_x_max'][self._network - 1]
-        h_max = data['aupr_h_max'][self._network - 1]
-        x = self.aupr
-        x_por = 0.835
-        x2 = x_max * x_por + x * (1 - x_por)
-        w = h_max * (b ** (-1 / c)) / c
-        return w * gammainc(b * (x2 - x_max) ** c, 1 / c)
+    pass
 
 
 class DREAM4S10Evaluator(DREAM4Evaluator):
