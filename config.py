@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from evaluation import DREAM4S10Evaluator, DREAM4S100Evaluator, DREAM5Evaluator
+from evaluation import DREAM4S10Evaluator, DREAM4S100Evaluator, DREAM5Evaluator, GenericSimpleEvaluator
 from types import SimpleNamespace as __
 import sys
 
@@ -26,6 +26,16 @@ models = {
 			max_features=1/7
 		)
 	),
+	"ecoli_subnetworks": __(
+		name="ecoli_subnetworks",
+		networks=["ecoli-%d" % i for i in [40, 80, 160, 320, 640]],
+		datasets=['%d' % i for i in range(1)],
+		evaluator=GenericSimpleEvaluator,
+		learner_params=__(
+			n_trees=100,
+			max_features="sqrt"
+		)
+	),
 	"dream5": __(
 		name="dream5",
 		# We only used newtork3 (E. Coli) to evaluate our algorithm
@@ -36,7 +46,7 @@ models = {
 			n_trees=10,
 			max_features=1/200
 		)
-	)
+	),
 }
 
 # any of the following criteria can be used
@@ -58,10 +68,10 @@ beta_log2_values = np.linspace(-7, 2, 13)
 
 max_level = -1
 
-model_name = "dream4_size100"
+model_name = "ecoli_subnetworks"
 model = models[model_name]
 
-score_name = score_names["score"]
+score_name = score_names["auroc"]
 # Do you want not to re-generate already made predictions? Set this flag to True
 skip_existing_preds = False
 # Dataset root
