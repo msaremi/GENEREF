@@ -69,7 +69,7 @@ class SimpleEvaluator(Evaluator):
     """Evaluator for Networks without self-loop"""
     def fit(self, labels, scores):
         idx = ~np.eye(labels.shape[0], dtype=bool)
-        super(self).fit(labels[idx], scores[idx])
+        super().fit(labels[idx], scores[idx])
 
 
 class GenericEvaluator(Evaluator):
