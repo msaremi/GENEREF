@@ -1,6 +1,6 @@
 import os
 import numpy as np
-from evaluation import DREAM4S10Evaluator, DREAM4S100Evaluator, DREAM5Evaluator, GenericSimpleEvaluator
+from evaluation import DREAM4S10Evaluator, DREAM4S100Evaluator, DREAM5Evaluator, GenericSimpleEvaluator, GenericEvaluator
 from types import SimpleNamespace as __
 import sys
 
@@ -28,9 +28,21 @@ models = {
 	),
 	"ecoli_subnetworks": __(
 		name="ecoli_subnetworks",
+		description="ecoli subnetworks of different size, each made independently and self-regulatory link removed",
 		networks=["ecoli-%d" % i for i in [40, 80, 160, 320, 640]],
 		datasets=['%d' % i for i in range(1)],
 		evaluator=GenericSimpleEvaluator,
+		learner_params=__(
+			n_trees=100,
+			max_features="sqrt"
+		)
+	),
+	"yeast_subnetworks": __(
+		name="yeast_subnetworks",
+		description="yeast subnetworks of different size, each made independently and self-regulatory link preserved",
+		networks=["yeast-%d" % i for i in [50, 100, 200, 400, 800, 1600]],
+		datasets=['%d' % i for i in range(1)],
+		evaluator=GenericEvaluator,
 		learner_params=__(
 			n_trees=100,
 			max_features="sqrt"
@@ -68,7 +80,7 @@ beta_log2_values = np.linspace(-7, 2, 13)
 
 max_level = -1
 
-model_name = "ecoli_subnetworks"
+model_name = "dream4_size100"
 model = models[model_name]
 
 score_name = score_names["auroc"]
