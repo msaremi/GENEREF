@@ -1,100 +1,61 @@
+import yaml
 import os
 import numpy as np
-from evaluation import DREAM4S10Evaluator, DREAM4S100Evaluator, DREAM5Evaluator, GenericSimpleEvaluator, GenericEvaluator
-from types import SimpleNamespace as __
 import sys
 
-# Two models are present in this work, the DREAM4 models and the DREAM5 models
-models = {
-	"dream4_size10": __(
-		name="dream4_size10",
-		networks=["insilico_size10_%d" % (i + 1) for i in range(5)],
-		datasets=['%d' % i for i in range(2)],
-		evaluator=DREAM4S10Evaluator,
-		learner_params=__(
-			n_trees=100,
-			max_features=1/7
-		)
-	),
-	"dream4_size100": __(
-		name="dream4_size100",
-		networks=["insilico_size100_%d" % (i + 1) for i in range(5)],
-		datasets=['%d' % i for i in range(10)],
-		evaluator=DREAM4S100Evaluator,
-		learner_params=__(
-			n_trees=100,
-			max_features=1/7
-		)
-	),
-	"ecoli_subnetworks": __(
-		name="ecoli_subnetworks",
-		description="ecoli subnetworks of different size, each made independently and self-regulatory link removed",
-		networks=["ecoli-%d" % i for i in [40, 80, 160, 320, 640]],
-		datasets=['%d' % i for i in range(1)],
-		evaluator=GenericSimpleEvaluator,
-		learner_params=__(
-			n_trees=100,
-			max_features="sqrt"
-		)
-	),
-	"yeast_subnetworks": __(
-		name="yeast_subnetworks",
-		description="yeast subnetworks of different size, each made independently and self-regulatory link preserved",
-		networks=["yeast-%d" % i for i in [50, 100, 200, 400, 800, 1600]],
-		datasets=['%d' % i for i in range(1)],
-		evaluator=GenericEvaluator,
-		learner_params=__(
-			n_trees=100,
-			max_features="sqrt"
-		)
-	),
-	"dream5": __(
-		name="dream5",
-		# We only used newtork3 (E. Coli) to evaluate our algorithm
-		networks=["dream5_%d" % (i + 1) for i in [2]],
-		datasets=['%d' % i for i in range(1)],
-		evaluator=DREAM5Evaluator,
-		learner_params=__(
-			n_trees=10,
-			max_features=1/200
-		)
-	),
-}
 
-# any of the following criteria can be used
-score_names = {
-	"score": "score",
-	"score_aupr": "score_aupr",
-	"auroc": "auroc",
-	"auroc_p_value": "auroc_p_value",
-	"aupr": "aupr",
-	"aupr_p_value": "aupr_p_value"
-}
+def load(data_path: str = None):
+    def update(d, u):
+        for k, v in u.items():
+            if isinstance(v, dict):
+                d[k] = update(d.get(k, {}), v)
+            else:
+                d[k] = v
+        return d
 
-#
-# Set the following hyper-parameters for your own use
-#
+    with open("config.yaml", 'r') as config_file:
+        config = yaml.safe_load(config_file)
 
-alpha_log2_values = np.linspace(-2, 7, 13)
-beta_log2_values = np.linspace(-7, 2, 13)
+    if data_path is None:
+        config['data_root'] = os.path.abspath(config['data_root'])
+        model_path = os.path.join(config['data_root'], config['model_name'])
+    else:
+        config['data_root'] = ''
+        model_path = os.path.abspath(data_path)
 
-max_level = -1
+    model_config_path = os.path.join(model_path, "config.yaml")
 
-model_name = "dream4_size100"
-model = models[model_name]
+    with open(model_config_path, 'r') as model_file:
+        model = yaml.safe_load(model_file)
 
-score_name = score_names["auroc"]
-# Do you want not to re-generate already made predictions? Set this flag to True
-skip_existing_preds = False
-# Dataset root
-data_path = os.path.join(os.getcwd(), "data", model.name)
+    config = update(config, model)
 
-# Where the datasets are stored
-datasets_path = os.path.join(os.getcwd(), "data", model.name, "datasets")
-# Where the predictions will be saved
-predictions_path = os.path.join(os.getcwd(), "data", model.name, "predictions")
-# Where the results will be saved
-results_path = os.path.join(os.getcwd(), "data", model.name, "results")
+    if isinstance(config['alpha_log2_values'], dict):
+        values = config['alpha_log2_values']
+        config['alpha_log2_values'] = np.linspace(values['start'], values['stop'], values['num'])
 
-if max_level == -1:
-	max_level = sys.maxsize
+    if isinstance(config['beta_log2_values'], dict):
+        values = config['beta_log2_values']
+        config['beta_log2_values'] = np.linspace(values['start'], values['stop'], values['num'])
+
+    if isinstance(config['model']['datasets'], dict):
+        values = config['model']['datasets']
+        datasets = np.arange(values['start'], values['stop'], values['step'])
+        config['model']['datasets'] = [str(i) for i in datasets]
+
+    if 'datasets_path' not in config:
+        config['datasets_path'] = os.path.join(model_path, config['model']['datasets_folder'])
+
+    if 'predictions_path' not in config:
+        config['predictions_path'] = os.path.join(model_path, config['model']['predictions_folder'])
+
+    if 'results_path' not in config:
+        config['results_path'] = os.path.join(model_path, config['model']['results_folder'])
+
+    if 'p_values_path' not in config:
+        config['p_values_path'] = os.path.join(model_path, config['model']['p_values_folder'])
+
+    if config['max_level'] == -1:
+        config['max_level'] = sys.maxsize
+
+    return config

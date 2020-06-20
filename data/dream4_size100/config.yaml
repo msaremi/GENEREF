@@ -1,0 +1,35 @@
+---
+alpha_log2_values:
+  start: -5
+  stop: 7
+  num: 17
+beta_log2_values:
+  start: -7
+  stop: 5
+  num: 17
+model:
+  name: dream4_size100
+  description: "DREAM4 size100 networks"
+  folder: dream4_size100
+  networks:
+    - insilico_size100_1
+    - insilico_size100_2
+    - insilico_size100_3
+    - insilico_size100_4
+    - insilico_size100_5
+  datasets:
+    - '0'
+    - '1'
+    - '2'
+    - '3'
+    - '4'
+    - '5'
+    - '6'
+    - '7'
+    - '8'
+    - '9'
+  evaluator: DREAM4S100Evaluator
+learner_params:
+  n_trees: 100
+  max_features: 0.15
+  trunk_size: 100

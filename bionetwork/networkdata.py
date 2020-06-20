@@ -93,6 +93,12 @@ class Loader:
         goldstandard_data = DataIO.load_network(file_path, triplet=False, dtype='f', ftype='npy')
         return goldstandard_data
 
+    def prediction_exists(self, key=None):
+        key = "" if key is None else "[%s]" % str(key)
+        file_name = "%s_prediction%s.npy" % (self._network, key)
+        file_path = os.path.join(self._preds_path, file_name)
+        return os.path.exists(file_path)
+
     def load_timeseries(self, key=None):
         """
         Load timeseries.tsv into a list
@@ -302,7 +308,6 @@ class TimeseriesExperimentSet(ExperimentSet):
 
 # noinspection PyBroadException
 class DataManager:
-    # noinspection PyBroadException
     # noinspection PyProtectedMember
     class Predictions:
         def __init__(self, parent):
@@ -323,18 +328,18 @@ class DataManager:
             if key not in self._predictions:
                 try:
                     self._predictions[key] = WeightedNetwork(self._parent._loader.load_prediction(key))
-                except:
+                except FileNotFoundError:
                     raise KeyError("Key %s does not exist" % str(key))
 
             return self._predictions[key]
 
         def __contains__(self, key):
-            try:
-                self[key]
-            except:
+            if key in self._predictions:
+                return True
+            elif self._parent._loader.prediction_exists(key):
+                return True
+            else:
                 return False
-
-            return True
 
         def __len__(self):
             return len(self._predictions)
@@ -345,6 +350,12 @@ class DataManager:
         def flush(self):
             for key in self._new_keys:
                 self._parent._saver.save_prediction(self._predictions[key].data, key)
+
+            self._new_keys.clear()
+
+        def free_memory(self):
+            self.flush()
+            self._predictions.clear()
 
     def __init__(self, path: str, network: str, preds_path: str = None):
         """
@@ -391,7 +402,7 @@ class DataManager:
         self._predictions._autosave = False
 
     def __exit__(self, exc_type, exc_val, exc_tb):
-        self._predictions.flush()
+        self._predictions.free_memory()
 
     @property
     def goldstandard(self):

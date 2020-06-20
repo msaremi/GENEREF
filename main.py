@@ -1,4 +1,4 @@
-## The main algorithm
+# The main algorithm
 
 import os
 import numpy as np
@@ -6,8 +6,7 @@ from datetime import datetime as dt
 from algorithm import Predictor
 from itertools import permutations
 from networkdata import DataManager, WeightedNetwork
-from config import model, alpha_log2_values, beta_log2_values, max_level, skip_existing_preds
-from config import datasets_path, predictions_path
+from config import load as load_config
 import sys
 
 
@@ -26,13 +25,15 @@ def get_regularization_matrix(w: WeightedNetwork):
     return reg
 
 
-for network in model.networks:  # For DREAM4 there are 5 networks each with 100 genes
+config = load_config(None if len(sys.argv) == 1 else sys.argv[1])
+
+for network in config['model']['networks']:  # For DREAM4 there are 5 networks each with 100 genes
     print(dt.now(), "Network", network)
 
-    for dataset in model.datasets:  # There are 10 dataset folders. In the most cases, 1 folder is enough
+    for dataset in config['model']['datasets']:  # There are 10 dataset folders. In the most cases, 1 folder is enough
         print(dt.now(), "\t", "Dataset", dataset)
-        dataset_path = os.path.join(datasets_path, dataset)
-        prediction_path = os.path.join(predictions_path, dataset)
+        dataset_path = os.path.join(config['datasets_path'], dataset)
+        prediction_path = os.path.join(config['predictions_path'], dataset)
         data_manager = DataManager(dataset_path, network, prediction_path)  # data_manager load the current dataset folder
 
         with data_manager:
@@ -44,7 +45,7 @@ for network in model.networks:  # For DREAM4 there are 5 networks each with 100 
             # matrices generated in the first iteration.
 
             # Make sure that number of iterations doesn't exceed max_level
-            for i in range(1, min(max_level, num_experiments + 1)):
+            for i in range(1, min(config['max_level'], num_experiments + 1)):
                 first_level = i == 1
                 second_level = i == 2
                 keys = list(permutations(range(num_experiments), i))
@@ -54,16 +55,17 @@ for network in model.networks:  # For DREAM4 there are 5 networks each with 100 
                     print(dt.now(), "\t\t", "Key", key)
                     current_experiment_id = key[-1]
                     current_experiment = data_manager.experiments[current_experiment_id]
-                    alphas = [0] if first_level else alpha_log2_values
-                    betas = [0] if first_level else beta_log2_values
+                    alphas = [0] if first_level else config['alpha_log2_values']
+                    betas = [0] if first_level else config['beta_log2_values']
 
                     #  The algorithm is run for all combinations of alphas and betas
                     for alpha_value in alphas:
                         for beta_value in betas:
                             print(dt.now(), "\t\t\t", "Params", (alpha_value, beta_value))
 
-                            if skip_existing_preds and (alpha_value, beta_value) + key in data_manager.predictions:
-                                break
+                            if config['skip_existing_preds'] \
+                                    and (alpha_value, beta_value) + key in data_manager.predictions:
+                                continue
 
                             if first_level:
                                 regularization = None
@@ -75,9 +77,9 @@ for network in model.networks:  # For DREAM4 there are 5 networks each with 100 
 
                             # Compute the next level confidence matrix
                             predictor = Predictor(
-                                trunk_size=100,
-                                n_trees=model.learner_params.n_trees,
-                                max_features=model.learner_params.max_features,
+                                trunk_size=config['learner_params']['trunk_size'],
+                                n_trees=config['learner_params']['n_trees'],
+                                max_features=config['learner_params']['max_features'],
                                 callback=lambda j, n:
                                 print('\r%s' % dt.now(), "\t\t\t\t", "Subproblem %d out of %d" % (j + 1, n), flush=True,
                                       end='')
@@ -91,5 +93,5 @@ for network in model.networks:  # For DREAM4 there are 5 networks each with 100 
                             data_manager.predictions[(alpha_value, beta_value) + key] = prediction
                             print('\r', end='')
 
-                    # Make sure that all predictions are stored in files
-                    data_manager.predictions.flush()
+                            # Store the predictions in the file and remove it from the memory
+                            data_manager.predictions.free_memory()

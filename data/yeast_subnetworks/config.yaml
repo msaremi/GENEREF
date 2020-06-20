@@ -1,0 +1,26 @@
+---
+alpha_log2_values:
+  start: -5
+  stop: 7
+  num: 17
+beta_log2_values:
+  start: -7
+  stop: 5
+  num: 17
+model:
+  name: yeast_subnetworks
+  description: "yeast subnetworks of different size, each made independently and self-regulatory link removed"
+  folder: yeast_subnetworks
+  networks:
+    - yeast-50
+    - yeast-100
+    - yeast-200
+    - yeast-800
+    - yeast-1600
+  datasets:
+    - '0'
+  evaluator: GenericSimpleEvaluator
+learner_params:
+  n_trees: 100
+  max_features: sqrt
+  trunk_size: 500

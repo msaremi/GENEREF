@@ -1,0 +1,22 @@
+---
+alpha_log2_values:
+  start: -5
+  stop: 7
+  num: 17
+beta_log2_values:
+  start: -7
+  stop: 5
+  num: 17
+model:
+  name: dream5
+  description: "DREAM5 network 2"
+  folder: dream5
+  networks:
+    - dream5_2
+  datasets:
+    - '0'
+  evaluator: DREAM5Evaluator
+learner_params:
+  n_trees: 100
+  max_features: 0.01
+  trunk_size: 500

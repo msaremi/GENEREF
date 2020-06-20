@@ -1,0 +1,27 @@
+---
+alpha_log2_values:
+  start: -5
+  stop: 7
+  num: 17
+beta_log2_values:
+  start: -7
+  stop: 5
+  num: 17
+model:
+  name: dream4_size10
+  description: |-
+    DREAM4 size10 networks
+  networks:
+    - insilico_size10_1
+    - insilico_size10_2
+    - insilico_size10_3
+    - insilico_size10_4
+    - insilico_size10_5
+  datasets:
+    - '0'
+    - '1'
+  evaluator: DREAM4S10Evaluator
+learner_params:
+  n_trees: 100
+  max_features: 0.15
+  trunk_size: 10

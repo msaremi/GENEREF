@@ -1,0 +1,25 @@
+---
+model_name: dream4_size10
+alpha_log2_values:
+  start: -6
+  stop: 6
+  num: 17
+beta_log2_values:
+  start: -6
+  stop: 6
+  num: 17
+skip_existing_preds: true
+max_level: -1
+data_root: data
+model:
+  datasets_folder: datasets
+  predictions_folder: predictions
+  results_folder: results
+  p_values_folder: p_values
+  has_p_values: true
+  has_self_cycles: false
+  evaluator: Evaluator
+learner_params:
+  n_trees: 100
+  max_features: sqrt
+  trunk_size: 100
