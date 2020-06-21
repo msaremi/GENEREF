@@ -4,7 +4,7 @@ import numpy as np
 import scipy.sparse as sprs
 from io import StringIO
 import scipy.stats as stats
-from typing import List, Tuple, Union
+from typing import List, Union
 from itertools import count
 
 
@@ -307,7 +307,6 @@ class TimeseriesExperimentSet(ExperimentSet):
         super().__init__(data)
 
 
-# noinspection PyBroadException
 class DataManager:
     # noinspection PyProtectedMember
     class Predictions:
@@ -360,7 +359,7 @@ class DataManager:
 
     def __init__(self, path: str, network: str, gold_path: str = None, preds_path: str = None):
         """
-        :param path: ex: [GENEREF DIR]\data\datasets\0\
+        :param path: ex: [GENEREF DIR]/data/datasets/0/
         :param network: ex: insilico_size100_1
         """
         self._goldstandard = None
@@ -376,7 +375,7 @@ class DataManager:
                 steadystate_data = self._loader.load_multifactorial(i)
                 steadystate_data = SteadyStateExperiment(steadystate_data)
                 experiments.append(steadystate_data)
-            except:
+            except FileNotFoundError:
                 break
 
         for i in count(0, 1):  # infinite loop
@@ -384,7 +383,7 @@ class DataManager:
                 steadystate_data = self._loader.load_knockout(i)
                 steadystate_data = SteadyStateExperiment(steadystate_data)
                 experiments.append(steadystate_data)
-            except:
+            except FileNotFoundError:
                 break
 
         for i in count(0, 1):  # infinite loop
@@ -394,7 +393,7 @@ class DataManager:
                                    for time_points, timeseries, perturbation
                                    in zip(time_points_list, timeseries_list, perturbation_data)]
                 experiments.append(TimeseriesExperimentSet(timeseries_data))
-            except:
+            except FileNotFoundError:
                 break
 
         self._experiments = experiments
@@ -426,4 +425,3 @@ class DataManager:
     @property
     def predictions(self):
         return self._predictions
-
