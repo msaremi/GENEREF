@@ -1,5 +1,5 @@
 ---
-model_name: dream4_size10
+model_name: ecoli_subnetworks
 score_name: score_aupr
 alpha_log2_values:
   start: -6
@@ -25,3 +25,4 @@ learner_params:
   n_trees: 100
   max_features: sqrt
   trunk_size: 100
+  parallel_jobs: 8

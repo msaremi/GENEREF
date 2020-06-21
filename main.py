@@ -77,6 +77,7 @@ for network in config['model']['networks']:  # For DREAM4 there are 5 networks e
 
                             # Compute the next level confidence matrix
                             predictor = Predictor(
+                                num_of_jobs=config['learner_params']['parallel_jobs'],
                                 trunk_size=config['learner_params']['trunk_size'],
                                 n_trees=config['learner_params']['n_trees'],
                                 max_features=config['learner_params']['max_features'],

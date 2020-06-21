@@ -1,11 +1,11 @@
 ---
 alpha_log2_values:
-  start: -5
-  stop: 7
+  start: -6
+  stop: 6
   num: 17
 beta_log2_values:
-  start: -7
-  stop: 5
+  start: -6
+  stop: 6
   num: 17
 model:
   name: ecoli_subnetworks

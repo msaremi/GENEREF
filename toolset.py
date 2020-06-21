@@ -9,6 +9,7 @@ from itertools import permutations
 from networkdata import DataManager
 from config import load as load_config
 import evaluation
+from sklearn.utils.extmath import cartesian
 import pandas as pd
 from glob import iglob
 import argparse
@@ -165,6 +166,14 @@ def report_results(data_path: str = None, score_name: str = None,
                 results[network][key] = _average_datasets(results[network][key], stack=True)
 
     print(results)
+
+
+def report_grid_values(data_path: str = None):
+    config = load_config(data_path)
+    alpha, beta = config['alpha_log2_values'], config['beta_log2_values']
+    grid_values = 2 ** cartesian((alpha, beta))
+    grid = pd.DataFrame(grid_values, columns=['alpha', 'beta'])
+    print(grid)
 
 
 if __name__ == '__main__':
