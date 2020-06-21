@@ -49,10 +49,11 @@ class DataIO:
 
 
 class Loader:
-    def __init__(self, path, network, preds_path=None):
+    def __init__(self, path, network, preds_path=None, gold_path=None):
         self._path = path
         self._network = network
         self._preds_path = os.path.join(path, "preds") if preds_path is None else preds_path
+        self._gold_path = path if gold_path is None else gold_path
 
     def load_multifactorial(self, key=None):
         """
@@ -82,7 +83,7 @@ class Loader:
         :return: dense numpy array of goldstandard data
         """
         file_name = "%s_goldstandard.tsv" % self._network
-        file_path = os.path.join(self._path, file_name)
+        file_path = os.path.join(self._gold_path, file_name)
         goldstandard_data = DataIO.load_network(file_path, triplet=True, dtype='i')
         return goldstandard_data
 
@@ -357,7 +358,7 @@ class DataManager:
             self.flush()
             self._predictions.clear()
 
-    def __init__(self, path: str, network: str, preds_path: str = None):
+    def __init__(self, path: str, network: str, gold_path: str = None, preds_path: str = None):
         """
         :param path: ex: [GENEREF DIR]\data\datasets\0\
         :param network: ex: insilico_size100_1
@@ -365,8 +366,8 @@ class DataManager:
         self._goldstandard = None
 
         self._predictions = DataManager.Predictions(self)
-        self._loader = Loader(path, network, preds_path)
-        self._saver = Saver(path, network, preds_path)
+        self._loader = Loader(path, network, preds_path=preds_path, gold_path=gold_path)
+        self._saver = Saver(path, network, preds_path=preds_path)
 
         experiments = []
 

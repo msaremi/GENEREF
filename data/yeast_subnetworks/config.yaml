@@ -9,7 +9,8 @@ beta_log2_values:
   num: 17
 model:
   name: yeast_subnetworks
-  description: "yeast subnetworks of different size, each made independently and self-regulatory link removed"
+  description: |-
+    Yeast subnetworks of different size, each made independently and self-regulatory link removed
   folder: yeast_subnetworks
   networks:
     - yeast-50
@@ -19,7 +20,8 @@ model:
     - yeast-1600
   datasets:
     - '0'
-  evaluator: GenericSimpleEvaluator
+  has_p_values: false
+  has_self_loops: false
 learner_params:
   n_trees: 100
   max_features: sqrt

@@ -9,13 +9,16 @@ beta_log2_values:
   num: 17
 model:
   name: dream5
-  description: "DREAM5 network 2"
+  description: |-
+    DREAM5 network 2
   folder: dream5
   networks:
     - dream5_2
   datasets:
     - '0'
   evaluator: DREAM5Evaluator
+  has_p_values: true
+  has_self_loops: false
 learner_params:
   n_trees: 100
   max_features: 0.01

@@ -9,7 +9,8 @@ beta_log2_values:
   num: 17
 model:
   name: dream4_size100
-  description: "DREAM4 size100 networks"
+  description: |-
+    DREAM4 size100 networks
   folder: dream4_size100
   networks:
     - insilico_size100_1
@@ -28,7 +29,8 @@ model:
     - '7'
     - '8'
     - '9'
-  evaluator: DREAM4S100Evaluator
+  has_p_values: true
+  has_self_loops: false
 learner_params:
   n_trees: 100
   max_features: 0.15

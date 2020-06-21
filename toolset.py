@@ -5,13 +5,13 @@ Use this file to generate the results based on the predictions
 import os
 import numpy as np
 from datetime import datetime as dt
-from algorithm import Predictor
 from itertools import permutations
-from networkdata import DataManager, WeightedNetwork
-from config import model, alpha_log2_values, beta_log2_values, max_level, \
-    score_name, datasets_path, predictions_path, results_path
+from networkdata import DataManager
+from config import load as load_config
+import evaluation
 import pandas as pd
 from glob import iglob
+import sys
 
 
 def _str_to_tuple(string):
@@ -24,32 +24,45 @@ def _str_to_tuple(string):
     return tuple(map(_to_num, filter(None, string[1:-1].split(','))))
 
 
-def generate_results():
+def generate_results(data_path: str = None, score_name: str = None):
     """produces results based on the predictions"""
+    config = load_config(data_path)
     all_scores = {}
 
-    for network in model.networks:
+    if score_name is None:
+        score_name = config['score_name']
+
+    evaluator_class = getattr(evaluation, config['model']['evaluator']) \
+        if 'evaluator' in config['model'] \
+        else evaluation.Evaluator
+
+    p_values_path = config['p_values_path'] if config['model']['has_p_values'] else None
+    self_loops = config['model']['has_self_loops']
+
+    for network in config['model']['networks']:
         print(dt.now(), "Network", network)
-        evaluator = model.evaluator(network)
+
+        evaluator = evaluator_class(network=network, p_values_path=p_values_path, self_loops=self_loops)
         all_scores[network] = {}
 
-        for dataset in model.datasets:
+        for dataset in config['model']['datasets']:
             print(dt.now(), "\t", "Dataset", dataset)
-            dataset_path = os.path.join(datasets_path, dataset)
-            prediction_path = os.path.join(predictions_path, dataset)
-            data_manager = DataManager(dataset_path, network, prediction_path)
+            dataset_path = os.path.join(config['datasets_path'], dataset)
+            prediction_path = os.path.join(config['predictions_path'], dataset)
+            goldstandard_path = config['goldstandards_path']
+            data_manager = DataManager(dataset_path, network, preds_path=prediction_path, gold_path=goldstandard_path)
 
             with data_manager:
                 num_experiments = len(data_manager.experiments)
 
-                for i in range(1, min(max_level, num_experiments + 1)):
+                for i in range(1, min(config['max_level'], num_experiments + 1)):
                     first_level = i == 1
                     keys = list(permutations(range(num_experiments), i))
 
                     for key in keys:
                         print(dt.now(), "\t\t", "Key", key)
-                        alphas = [0] if first_level else alpha_log2_values
-                        betas = [0] if first_level else beta_log2_values
+                        alphas = [0] if first_level else config['alpha_log2_values']
+                        betas = [0] if first_level else config['beta_log2_values']
 
                         if key not in all_scores[network]:
                             columns = pd.MultiIndex.from_product((alphas, betas), names=['alpha', 'beta'])
@@ -64,21 +77,22 @@ def generate_results():
                                 all_scores[network][key][alpha_value, beta_value][dataset] = \
                                     getattr(evaluator, score_name)
 
-    os.makedirs(results_path, exist_ok=True)
+    os.makedirs(config['results_path'], exist_ok=True)
 
     for network in all_scores:
         for key in all_scores[network]:
-            fname = os.path.join(results_path, "%s_%s_%s.csv" % (network, str(key), score_name))
+            fname = os.path.join(config['results_path'], "%s_%s_%s.csv" % (network, str(key), score_name))
             all_scores[network][key].to_csv(fname)
 
 
-def load_results():
+def _load_results(data_path: str = None, score_name: str = None):
     """load saved results"""
+    config = load_config(data_path)
     all_scores = {}
 
-    for network in model.networks:
+    for network in config['model']['networks']:
         all_scores[network] = {}
-        fpattern = os.path.join(results_path, "%s_(*)_%s.csv" % (network, score_name))
+        fpattern = os.path.join(config['results_path'], "%s_(*)_%s.csv" % (network, score_name))
 
         for fname in iglob(fpattern):
             basename = os.path.basename(fname)
@@ -89,7 +103,7 @@ def load_results():
     return all_scores
 
 
-def cross_validate(all_scores: dict):
+def _cross_validate(all_scores: dict):
     """gets the scores on all of the datasets and returns the cross-validation scores"""
     top_scores = {}
     mean_scores_columns = []
@@ -125,7 +139,7 @@ def cross_validate(all_scores: dict):
     return mean_scores
 
 
-def average_datasets(scores: pd.DataFrame, stack: bool = False):
+def _average_datasets(scores: pd.DataFrame, stack: bool = False):
     """averages the dataframe over the indexes"""
     mean_score_vals = np.mean(scores.to_numpy(), axis=0).reshape((1, -1))
     mean_scores = pd.DataFrame(data=mean_score_vals, columns=scores.columns, index=['avg'])
@@ -136,8 +150,28 @@ def average_datasets(scores: pd.DataFrame, stack: bool = False):
     return mean_scores
 
 
-# generate_results()
-# results = load_results()
-# cross_vals = cross_validate(results)
-# mean_vals = cv_mean_datasets(cross_vals)
-# print(mean_vals)
+def report_results(data_path: str = None, score_name: str = None,
+                   cross_validate: bool = True, average_datasets: bool = True):
+    results = _load_results(data_path, score_name)
+
+    if cross_validate:
+        results = _cross_validate(results)
+
+    if average_datasets:
+        for network in results:
+            for key in results[network]:
+                results[network][key] = _average_datasets(results[network][key], stack=True)
+
+    print(results)
+
+
+if __name__ == '__main__':
+    if len(sys.argv) > 1:
+        function = sys.argv[1]
+
+        if function.startswith('_'):
+            raise PermissionError("You are not allowed to run the protected function '%s'" % function)
+
+        globals()[function](*sys.argv[2:])
+    else:
+        raise PermissionError("Cannot run this module directly without a function name")

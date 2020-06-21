@@ -9,7 +9,8 @@ beta_log2_values:
   num: 17
 model:
   name: ecoli_subnetworks
-  description: "E.coli. subnetworks of different size, each made independently and self-regulatory link removed"
+  description: |-
+    E.coli. subnetworks of different size, each made independently and self-regulatory link removed
   folder: ecoli_subnetworks
   networks:
     - ecoli-40
@@ -19,7 +20,8 @@ model:
     - ecoli-640
   datasets:
     - '0'
-  evaluator: GenericSimpleEvaluator
+  has_p_values: false
+  has_self_loops: false
 learner_params:
   n_trees: 100
   max_features: sqrt

@@ -34,7 +34,7 @@ for network in config['model']['networks']:  # For DREAM4 there are 5 networks e
         print(dt.now(), "\t", "Dataset", dataset)
         dataset_path = os.path.join(config['datasets_path'], dataset)
         prediction_path = os.path.join(config['predictions_path'], dataset)
-        data_manager = DataManager(dataset_path, network, prediction_path)  # data_manager load the current dataset folder
+        data_manager = DataManager(dataset_path, network, preds_path=prediction_path)  # data_manager load the current dataset folder
 
         with data_manager:
             num_experiments = len(data_manager.experiments)
@@ -95,3 +95,7 @@ for network in config['model']['networks']:  # For DREAM4 there are 5 networks e
 
                             # Store the predictions in the file and remove it from the memory
                             data_manager.predictions.free_memory()
+
+
+if __name__ != '__main__':
+    raise PermissionError("You cannot import this file. Run it only from the terminal.")

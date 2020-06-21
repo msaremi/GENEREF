@@ -46,6 +46,9 @@ def load(data_path: str = None):
     if 'datasets_path' not in config:
         config['datasets_path'] = os.path.join(model_path, config['model']['datasets_folder'])
 
+    if 'goldstandards_path' not in config:
+        config['goldstandards_path'] = os.path.join(model_path, config['model']['goldstandards_folder'])
+
     if 'predictions_path' not in config:
         config['predictions_path'] = os.path.join(model_path, config['model']['predictions_folder'])
 

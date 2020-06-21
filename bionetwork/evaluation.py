@@ -1,35 +1,40 @@
 import os
 import numpy as np
 from sklearn.metrics import roc_auc_score, precision_recall_curve, auc
+from typing import Union
 
 
 class Evaluator:
     """Abstract class. Use one of the derived classes"""
 
     _probs = {}
-    _xs = None
 
-    def __init__(self, network: str):
-        self._network = int(network[-1])
+    def __init__(self, network: str = None, p_values_path: str = None, self_loops: bool = False):
+        self._self_loops = self_loops
+        self._p_values_path = p_values_path
+        self._network = network
         self._labels = None
         self._scores = None
 
-    @classmethod
-    def _load_probs(cls, metric):
-        if metric not in cls._probs:
-            resource_path = os.path.abspath(os.path.join(os.getcwd(), "resources", cls.__name__))
-            path = os.path.join(resource_path, "%s.npy" % metric.upper())
-            cls._probs[metric] = np.load(path)
+    def _load_probs(self, metric):
+        if metric not in self._probs:
+            path = os.path.join(self._p_values_path, "%s_%s.npy" % (self._network, metric.lower()))
+            data = np.squeeze(np.load(path))
 
-            if cls._xs is None:
-                path = os.path.join(resource_path, "Xs.npy")
-                cls._xs = np.load(path) \
-                    if os.path.exists(path) \
-                    else np.linspace(0, 1, cls._probs[metric].shape[1])
+            if data.ndim == 1:
+                x = np.linspace(0, 1, data.shape[0])
+                data = np.vstack((x, data))
 
-        return cls._probs[metric], cls._xs
+            self._probs[metric] = data
+
+        return self._probs[metric][0, :], self._probs[metric][1, :]
 
     def fit(self, labels, scores):
+        if not self._self_loops:
+            idx = ~np.eye(labels.shape[0], dtype=bool)
+            labels = labels[idx]
+            scores = scores[idx]
+
         self._labels = np.asarray(labels, dtype=np.int32).ravel()
         self._scores = np.asarray(scores, dtype=np.float64).ravel()
 
@@ -56,42 +61,21 @@ class Evaluator:
 
     @property
     def auroc_p_value(self):
-        probs, xs = type(self)._load_probs("AUROC")
-        return np.interp(self.auroc, xs, probs[self._network - 1, :])
+        try:
+            xs, probs = self._load_probs("AUROC")
+        except FileNotFoundError:
+            raise Exception("AUROC p-value cannot be computed for this network")
+
+        return np.interp(self.auroc, xs, probs)
 
     @property
     def aupr_p_value(self):
-        probs, xs = type(self)._load_probs("AUPR")
-        return np.interp(self.aupr, xs, probs[self._network - 1, :])
+        try:
+            xs, probs = self._load_probs("AUPR")
+        except FileNotFoundError:
+            raise Exception("AUROC p-value cannot be computed for this network")
 
-
-class SimpleEvaluator(Evaluator):
-    """Evaluator for Networks without self-loop"""
-    def fit(self, labels, scores):
-        idx = ~np.eye(labels.shape[0], dtype=bool)
-        super().fit(labels[idx], scores[idx])
-
-
-class GenericEvaluator(Evaluator):
-    """Evaluator for networks whose null-distribution is unknown"""
-    @property
-    def auroc_p_value(self):
-        raise Exception("The auroc_p_value method can not be called on generic evaluators")
-
-    @property
-    def aupr_p_value(self):
-        raise Exception("The aupr_p_value method can not be called on generic evaluators")
-
-
-class GenericSimpleEvaluator(SimpleEvaluator):
-    """Evaluator for networks without self-loops whose null-distribution is unknown"""
-    @property
-    def auroc_p_value(self):
-        raise Exception("The auroc_p_value method can not be called on generic evaluators")
-
-    @property
-    def aupr_p_value(self):
-        raise Exception("The aupr_p_value method can not be called on generic evaluators")
+        return np.interp(self.aupr, xs, probs)
 
 
 class DREAM5Evaluator(Evaluator):
@@ -109,18 +93,3 @@ class DREAM5Evaluator(Evaluator):
         gs_scores = scores[regulators, targets]
         self._labels = np.asarray(gs_labels, dtype=np.int32).ravel()
         self._scores = np.asarray(gs_scores, dtype=np.float64).ravel()
-
-
-class DREAM4Evaluator(SimpleEvaluator):
-    """Abstract class. Use either of DREAM4S10Evaluator and DREAM4S100Evaluator"""
-    pass
-
-
-class DREAM4S10Evaluator(DREAM4Evaluator):
-    """DREAM4 Size 10 networks evaluator"""
-    pass
-
-
-class DREAM4S100Evaluator(DREAM4Evaluator):
-    """DREAM4 Size 100 networks evaluator"""
-    pass

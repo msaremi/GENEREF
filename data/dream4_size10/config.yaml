@@ -20,7 +20,8 @@ model:
   datasets:
     - '0'
     - '1'
-  evaluator: DREAM4S10Evaluator
+  has_p_values: true
+  has_self_loops: false
 learner_params:
   n_trees: 100
   max_features: 0.15
