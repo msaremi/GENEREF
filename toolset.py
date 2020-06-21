@@ -11,6 +11,8 @@ from config import load as load_config
 import evaluation
 import pandas as pd
 from glob import iglob
+import argparse
+from inspect import signature
 import sys
 
 
@@ -167,11 +169,24 @@ def report_results(data_path: str = None, score_name: str = None,
 
 if __name__ == '__main__':
     if len(sys.argv) > 1:
-        function = sys.argv[1]
+        function_name = sys.argv[1]
 
-        if function.startswith('_'):
-            raise PermissionError("You are not allowed to run the protected function '%s'" % function)
+        if function_name.startswith('_'):
+            raise PermissionError("You are not allowed to run the protected function '%s'" % function_name)
 
-        globals()[function](*sys.argv[2:])
+        parser = argparse.ArgumentParser()
+        parser.add_argument('function_name')
+        function = globals()[function_name]
+        sig = signature(function)
+
+        for name, value in sig.parameters.items():
+            if value.annotation == str:
+                parser.add_argument('-%s' % name, dest=name, default=None)
+            elif value.annotation == bool:
+                parser.add_argument('--%s' % name, dest=name, default=False, action='store_true')
+
+        arguments = vars(parser.parse_args())
+        del arguments['function_name']
+        function(**arguments)
     else:
         raise PermissionError("Cannot run this module directly without a function name")
