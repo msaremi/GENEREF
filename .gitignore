@@ -1,4 +1,4 @@
 /data/*/results/
 /data/*/predictions/
-/cython_debug/
-/**/__pycache__/
+**/cython_debug/
+**/__pycache__/
