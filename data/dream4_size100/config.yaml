@@ -1,12 +1,12 @@
 ---
 alpha_log2_values:
-  start: -5
-  stop: 7
-  num: 17
+  start: -10
+  stop: 2
+  num: 13
 beta_log2_values:
-  start: -7
-  stop: 5
-  num: 17
+  start: -4
+  stop: 8
+  num: 13
 model:
   name: dream4_size100
   description: |-
@@ -20,18 +20,18 @@ model:
     - insilico_size100_5
   datasets:
     - '0'
-    - '1'
-    - '2'
-    - '3'
-    - '4'
-    - '5'
-    - '6'
-    - '7'
-    - '8'
-    - '9'
+#    - '1'
+#    - '2'
+#    - '3'
+#    - '4'
+#    - '5'
+#    - '6'
+#    - '7'
+#    - '8'
+#    - '9'
   has_p_values: true
   has_self_loops: false
 learner_params:
   n_trees: 100
   max_features: 0.15
-  trunk_size: 100
+trunk_size: 100

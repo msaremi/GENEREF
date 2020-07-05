@@ -61,6 +61,10 @@ class Evaluator:
 
     @property
     def auroc_p_value(self):
+        if self._p_values_path is None:
+            raise Exception("AUROC p-value cannot be computed for this network. "
+                            "This network does not have the p-value distribution.")
+
         try:
             xs, probs = self._load_probs("AUROC")
         except FileNotFoundError:
@@ -70,6 +74,10 @@ class Evaluator:
 
     @property
     def aupr_p_value(self):
+        if self._p_values_path is None:
+            raise Exception("AUPR p-value cannot be computed for this network. "
+                            "This network does not have the p-value distribution.")
+
         try:
             xs, probs = self._load_probs("AUPR")
         except FileNotFoundError:

@@ -1,26 +1,19 @@
 import numpy as np
 from joblib import Parallel, delayed
-# from sklearn.preprocessing import scale
 from networkdata import Experiment, SteadyStateExperiment, TimeseriesExperimentSet, WeightedNetwork
-# from rainforest.tree import RegressionTree
 from rainforest.ensemble import RegressionForest
-# from sklearn.tree import DecisionTreeRegressor
-# from sklearn.ensemble import BaggingRegressor, RandomForestRegressor
-# from scipy.stats import beta, norm
-# import xgboost as xgb
-# from dynGENIE3 import dynGENIE3
 from typing import Union
-
 
 class Predictor:
     def __init__(self, num_of_jobs: int = 8, n_trees: int = 100, trunk_size: int = None, max_features: float = 1/7,
-                 callback=None):
+                 callback=None, parallel_mode='multiprocessing'):
         self._network = None
         self._num_of_jobs = num_of_jobs
         self._n_trees = n_trees
         self._max_features = max_features
         self._trunk_size = trunk_size if trunk_size else num_of_jobs
         self._callback = callback
+        self._parallel_mode = parallel_mode
 
     @staticmethod
     def _get_timelagged_subproblem(timeseries: TimeseriesExperimentSet, target_gene, regularizations=None):
@@ -71,22 +64,29 @@ class Predictor:
 
             if j % self._trunk_size == self._trunk_size - 1:
                 if self._callback:
-                    self._callback(j, num_genes)
+                    self._callback(j - (self._trunk_size - 1), num_genes)
 
                 yield data
                 data = []
 
         if data:
-           yield data
+            if self._callback:
+                self._callback(num_genes - (num_genes % self._trunk_size), num_genes)
 
-    def _solve_subproblem(self, x, y, feature_weight=None):
-        regr = RegressionForest(self._n_trees, max_features=self._max_features)
+            yield data
+
+    @staticmethod
+    def _solve_subproblem(n_trees, max_features, x, y, feature_weight=None):
+        regr = RegressionForest(n_trees, max_features=max_features)
         regr.fit(x, np.ravel(y), feature_weight=feature_weight)
         return regr.feature_importances_
 
     def _solve_all_problems_parallely(self, data):
-        parallel = Parallel(n_jobs=self._num_of_jobs)
-        results = parallel(delayed(self._solve_subproblem)(x, y, w) for x, y, w in data)
+        require = None if self._parallel_mode == 'multiprocessing' else 'sharedmem'
+        parallel = Parallel(n_jobs=self._num_of_jobs, require=require)
+        cls = type(self)
+        results = \
+            parallel(delayed(cls._solve_subproblem)(self._n_trees, self._max_features, x, y, w) for x, y, w in data)
         return results
 
     @staticmethod

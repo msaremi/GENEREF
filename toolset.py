@@ -91,6 +91,10 @@ def generate_results(data_path: str = None, score_name: str = None):
 def _load_results(data_path: str = None, score_name: str = None):
     """load saved results"""
     config = load_config(data_path)
+
+    if score_name is None:
+        score_name = config['score_name']
+
     all_scores = {}
 
     for network in config['model']['networks']:

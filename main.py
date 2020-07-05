@@ -1,13 +1,17 @@
 # The main algorithm
 
+if __name__ != '__main__':
+    raise PermissionError("You cannot import this file. Run it only from the terminal.")
+
+
 import os
 import numpy as np
-from datetime import datetime as dt
 from algorithm import Predictor
 from itertools import permutations
 from networkdata import DataManager, WeightedNetwork
 from config import load as load_config
 import sys
+from utils import ProgressBar, print_timed
 
 
 def modulate(data: np.ndarray):
@@ -25,19 +29,46 @@ def get_regularization_matrix(w: WeightedNetwork):
     return reg
 
 
+def report_progress(progress_bar=None, title=None, prefix=None, value=None, maximum=None, indentation=0,
+                    line_break=True):
+    if config['verbosity'] == "progress_bars":
+        pb[progress_bar].update(title=title, prefix=prefix, value=value, maximum=maximum)
+    elif config['verbosity'] == "log":
+        print_timed(f"{title} {prefix} ({value} / {maximum})", indentation=indentation, start="\r" * (not line_break),
+                    end="\n" * line_break)
+
+
 config = load_config(None if len(sys.argv) == 1 else sys.argv[1])
+pb = {}
 
-for network in config['model']['networks']:  # For DREAM4 there are 5 networks each with 100 genes
-    print(dt.now(), "Network", network)
+if config['verbosity'] == "progress_bars":
+    pb.update({
+        'network': ProgressBar(0, 1),
+        'dset': ProgressBar(0, 1),
+        'depth': ProgressBar(0, 1),
+        'key': ProgressBar(0, 1),
+        'alpha': ProgressBar(0, 1),
+        'beta': ProgressBar(0, 1),
+        'subproblem': ProgressBar(0, 1, title="Subproblem", prefix="0")
+    })
 
-    for dataset in config['model']['datasets']:  # There are 10 dataset folders. In the most cases, 1 folder is enough
-        print(dt.now(), "\t", "Dataset", dataset)
+    ProgressBar.init_renderer()
+
+for network_id, network in enumerate(config['model']['networks']):  # For DREAM4 there are 5 networks each with 100 genes
+    report_progress(progress_bar='network', title="Network", prefix=network, value=network_id + 1,
+                    maximum=len(config['model']['networks']), indentation=0)
+
+    for dataset_id, dataset in enumerate(config['model']['datasets']):  # There are 10 dataset folders. In the most cases, 1 folder is enough
+        report_progress(progress_bar='dset', title="Dataset Pack", prefix=dataset, value=dataset_id + 1,
+                        maximum=len(config['model']['datasets']), indentation=1)
+
         dataset_path = os.path.join(config['datasets_path'], dataset)
         prediction_path = os.path.join(config['predictions_path'], dataset)
         data_manager = DataManager(dataset_path, network, preds_path=prediction_path)  # data_manager load the current dataset folder
 
         with data_manager:
             num_experiments = len(data_manager.experiments)
+            num_iterations = min(config['max_level'], num_experiments + 1)
 
             # This algorithm sweeps all configurations of dataset in a breadth first manner:
             # First it runs the first iteration of GENEREF for all existing datasets
@@ -45,23 +76,33 @@ for network in config['model']['networks']:  # For DREAM4 there are 5 networks e
             # matrices generated in the first iteration.
 
             # Make sure that number of iterations doesn't exceed max_level
-            for i in range(1, min(config['max_level'], num_experiments + 1)):
+            for i in range(1, num_iterations):
                 first_level = i == 1
                 second_level = i == 2
                 keys = list(permutations(range(num_experiments), i))
+                report_progress(progress_bar='depth', title="Depth", prefix=str(i), maximum=num_iterations - 1, value=i,
+                                indentation=2)
 
                 #  keys keep track of the current path that GENEREF has followed in the breadth-first navigation
-                for key in keys:
-                    print(dt.now(), "\t\t", "Key", key)
+                for key_id, key in enumerate(keys):
+                    report_progress(progress_bar='key', title="Dataset", prefix=str(key), value=key_id + 1,
+                                    maximum=len(keys), indentation=2)
+
                     current_experiment_id = key[-1]
                     current_experiment = data_manager.experiments[current_experiment_id]
                     alphas = [0] if first_level else config['alpha_log2_values']
                     betas = [0] if first_level else config['beta_log2_values']
 
                     #  The algorithm is run for all combinations of alphas and betas
-                    for alpha_value in alphas:
-                        for beta_value in betas:
-                            print(dt.now(), "\t\t\t", "Params", (alpha_value, beta_value))
+                    for alpha_value_id, alpha_value in enumerate(alphas):
+                        report_progress(progress_bar='alpha', title="Alpha", prefix=f"2 ^ {alpha_value}",
+                                        maximum=len(config['alpha_log2_values']), value=alpha_value_id + 1,
+                                        indentation=3)
+
+                        for beta_value_id, beta_value in enumerate(betas):
+                            report_progress(progress_bar='beta', title="Beta", prefix=f"2 ^ {beta_value}",
+                                            maximum=len(config['beta_log2_values']), value=beta_value_id + 1,
+                                            indentation=4)
 
                             if config['skip_existing_preds'] \
                                     and (alpha_value, beta_value) + key in data_manager.predictions:
@@ -77,13 +118,14 @@ for network in config['model']['networks']:  # For DREAM4 there are 5 networks e
 
                             # Compute the next level confidence matrix
                             predictor = Predictor(
-                                num_of_jobs=config['learner_params']['parallel_jobs'],
-                                trunk_size=config['learner_params']['trunk_size'],
+                                num_of_jobs=config['parallel_jobs'],
+                                parallel_mode=config['parallel_mode'],
+                                trunk_size=config['trunk_size'],
                                 n_trees=config['learner_params']['n_trees'],
                                 max_features=config['learner_params']['max_features'],
                                 callback=lambda j, n:
-                                print('\r%s' % dt.now(), "\t\t\t\t", "Subproblem %d out of %d" % (j + 1, n), flush=True,
-                                      end='')
+                                report_progress(progress_bar='subproblem', title="Subproblem", prefix=str(j),
+                                                value=j + 1, maximum=n, indentation=5, line_break=False)
                             )
                             predictor.fit(current_experiment, regularization)
                             prediction = predictor.network
@@ -97,6 +139,4 @@ for network in config['model']['networks']:  # For DREAM4 there are 5 networks e
                             # Store the predictions in the file and remove it from the memory
                             data_manager.predictions.free_memory()
 
-
-if __name__ != '__main__':
-    raise PermissionError("You cannot import this file. Run it only from the terminal.")
+ProgressBar.terminate_renderer()

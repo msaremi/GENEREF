@@ -81,9 +81,9 @@ they will need to provide the cumulative distribution of p-values of the null di
 in specific files and set this field equal to `true`. The `model\has_self_loops` indicates if the models have self cycles or not.
 
 The ".yaml" file defines other properties. In summary, the `learner_params` parameter sets the parameters of the algorithm or random forests that are used as the solvers.
-These parameters are the number of trees in each forest `learner_params\n_trees`, 
-and the maximum proportion of features used when creating each node in the trees `learner_params\max_features`,
-and properties related to the parallel solving of the problem `learner_params\trunk_size`, and `learner_params\parallel_jobs`.
+These parameters are the number of trees in each forest `learner_params\n_trees` and 
+and the maximum proportion of features used when creating each node in the trees `learner_params\max_features`.
+There are also properties related to the parallel solving of the problem `trunk_size`, and `parallel_jobs`.
 
 You can modify "[config.yaml](config.yaml)" to alter the global properties of GENEREF.
 If you want to use your own custom model, after preparation of the model files (explained in the following section),
@@ -129,13 +129,18 @@ Maximum number of features used for creating in node in the random forest trees.
 
 <hr/>
 
-`learner_params\trunk_size: int`<br/>
+`trunk_size: int`<br/>
 Number of sub-problem that can simultaneously exist in the memory. Set it to a lower value if you have limited capacity of the
 main memory.
 
 <hr/>
 
-`learner_params\parallel_jobs: int`<br/>
+`parallel_mode: Enum["multiprocessing", "threading"]`<br/>
+The type of parallelism that the program wil use.
+
+<hr/>
+
+`parallel_jobs: int`<br/>
 Number of parallel threads of the algorithm. Defaults to 8.
 
 <hr/>
@@ -149,6 +154,12 @@ If object, `start`, `stop` and `num` determine the values for the 𝛼 hyper-par
 `beta_log2_values: Union[object, List[float]]`<br/>
 If an array, each element is a value for the 𝛽 hyper-parameter.
 If object, `start`, `stop` and `num` determine the values for the 𝛽 hyper-parameter.
+
+<hr/>
+
+`verbosity: Enum["log", "progress_bars", "suppressed"] = "progress"` (only in [config.yaml](config.yaml))<br/>
+Determines how the progress of the algorithm is reported. If `"log"`, the progress will be printed line by line;
+If `"progress_bars"`, seven progress bars will be shown; If `"suppressed"`, nothing will be printed into the output.
 
 <hr/>
 

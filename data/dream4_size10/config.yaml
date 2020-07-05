@@ -25,4 +25,4 @@ model:
 learner_params:
   n_trees: 100
   max_features: 0.15
-  trunk_size: 10
+trunk_size: 10

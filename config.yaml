@@ -1,6 +1,10 @@
 ---
 model_name: ecoli_subnetworks
-score_name: score_aupr
+score_name: "auroc" # "auroc" or "aupr" or "auroc_p_value" or "aupr_p_value" or "score" or "score_aupr"
+verbosity: "progress_bars" # "log" or "progress_bars" or "suppressed"
+parallel_mode: "multiprocessing" # "multiprocessing" or "threading"
+parallel_jobs: 8
+trunk_size: 100 # Regulate the memory usage
 alpha_log2_values:
   start: -6
   stop: 6
@@ -11,18 +15,16 @@ beta_log2_values:
   num: 17
 skip_existing_preds: true
 max_level: -1
-data_root: data
+data_root: "data/"
 model:
-  goldstandards_folder: goldstandards
-  datasets_folder: datasets
-  predictions_folder: predictions
-  results_folder: results
-  p_values_folder: p_values
+  goldstandards_folder: "goldstandards/"
+  datasets_folder: "datasets/"
+  predictions_folder: "predictions/"
+  results_folder: "results/"
+  p_values_folder: "p_values/"
   has_p_values: false
   has_self_loops: false
   evaluator: Evaluator
 learner_params:
   n_trees: 100
   max_features: sqrt
-  trunk_size: 100
-  parallel_jobs: 8
