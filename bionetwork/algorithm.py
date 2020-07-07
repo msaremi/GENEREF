@@ -4,6 +4,7 @@ from networkdata import Experiment, SteadyStateExperiment, TimeseriesExperimentS
 from rainforest.ensemble import RegressionForest
 from typing import Union
 
+
 class Predictor:
     def __init__(self, num_of_jobs: int = 8, n_trees: int = 100, trunk_size: int = None, max_features: float = 1/7,
                  callback=None, parallel_mode='multiprocessing'):

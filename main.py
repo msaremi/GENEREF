@@ -11,7 +11,7 @@ from itertools import permutations
 from networkdata import DataManager, WeightedNetwork
 from config import load as load_config
 import sys
-from utils import ProgressBar, print_timed
+from utils import report_progress, finish_report
 
 
 def modulate(data: np.ndarray):
@@ -29,38 +29,15 @@ def get_regularization_matrix(w: WeightedNetwork):
     return reg
 
 
-def report_progress(progress_bar=None, title=None, prefix=None, value=None, maximum=None, indentation=0,
-                    line_break=True):
-    if config['verbosity'] == "progress_bars":
-        pb[progress_bar].update(title=title, prefix=prefix, value=value, maximum=maximum)
-    elif config['verbosity'] == "log":
-        print_timed(f"{title} {prefix} ({value} / {maximum})", indentation=indentation, start="\r" * (not line_break),
-                    end="\n" * line_break)
-
-
 config = load_config(None if len(sys.argv) == 1 else sys.argv[1])
-pb = {}
-
-if config['verbosity'] == "progress_bars":
-    pb.update({
-        'network': ProgressBar(0, 1),
-        'dset': ProgressBar(0, 1),
-        'depth': ProgressBar(0, 1),
-        'key': ProgressBar(0, 1),
-        'alpha': ProgressBar(0, 1),
-        'beta': ProgressBar(0, 1),
-        'subproblem': ProgressBar(0, 1, title="Subproblem", prefix="0")
-    })
-
-    ProgressBar.init_renderer()
 
 for network_id, network in enumerate(config['model']['networks']):  # For DREAM4 there are 5 networks each with 100 genes
     report_progress(progress_bar='network', title="Network", prefix=network, value=network_id + 1,
-                    maximum=len(config['model']['networks']), indentation=0)
+                    maximum=len(config['model']['networks']), indentation=0, verbosity=config['verbosity'])
 
     for dataset_id, dataset in enumerate(config['model']['datasets']):  # There are 10 dataset folders. In the most cases, 1 folder is enough
         report_progress(progress_bar='dset', title="Dataset Pack", prefix=dataset, value=dataset_id + 1,
-                        maximum=len(config['model']['datasets']), indentation=1)
+                        maximum=len(config['model']['datasets']), indentation=1, verbosity=config['verbosity'])
 
         dataset_path = os.path.join(config['datasets_path'], dataset)
         prediction_path = os.path.join(config['predictions_path'], dataset)
@@ -81,12 +58,12 @@ for network_id, network in enumerate(config['model']['networks']):  # For DREAM4
                 second_level = i == 2
                 keys = list(permutations(range(num_experiments), i))
                 report_progress(progress_bar='depth', title="Depth", prefix=str(i), maximum=num_iterations - 1, value=i,
-                                indentation=2)
+                                indentation=2, verbosity=config['verbosity'])
 
                 #  keys keep track of the current path that GENEREF has followed in the breadth-first navigation
                 for key_id, key in enumerate(keys):
                     report_progress(progress_bar='key', title="Dataset", prefix=str(key), value=key_id + 1,
-                                    maximum=len(keys), indentation=2)
+                                    maximum=len(keys), indentation=2, verbosity=config['verbosity'])
 
                     current_experiment_id = key[-1]
                     current_experiment = data_manager.experiments[current_experiment_id]
@@ -97,12 +74,12 @@ for network_id, network in enumerate(config['model']['networks']):  # For DREAM4
                     for alpha_value_id, alpha_value in enumerate(alphas):
                         report_progress(progress_bar='alpha', title="Alpha", prefix=f"2 ^ {alpha_value}",
                                         maximum=len(config['alpha_log2_values']), value=alpha_value_id + 1,
-                                        indentation=3)
+                                        indentation=3, verbosity=config['verbosity'])
 
                         for beta_value_id, beta_value in enumerate(betas):
                             report_progress(progress_bar='beta', title="Beta", prefix=f"2 ^ {beta_value}",
                                             maximum=len(config['beta_log2_values']), value=beta_value_id + 1,
-                                            indentation=4)
+                                            indentation=4, verbosity=config['verbosity'])
 
                             if config['skip_existing_preds'] \
                                     and (alpha_value, beta_value) + key in data_manager.predictions:
@@ -125,7 +102,8 @@ for network_id, network in enumerate(config['model']['networks']):  # For DREAM4
                                 max_features=config['learner_params']['max_features'],
                                 callback=lambda j, n:
                                 report_progress(progress_bar='subproblem', title="Subproblem", prefix=str(j),
-                                                value=j + 1, maximum=n, indentation=5, line_break=False)
+                                                value=j + 1, maximum=n, indentation=5, line_break=False,
+                                                verbosity=config['verbosity'])
                             )
                             predictor.fit(current_experiment, regularization)
                             prediction = predictor.network
@@ -139,4 +117,4 @@ for network_id, network in enumerate(config['model']['networks']):  # For DREAM4
                             # Store the predictions in the file and remove it from the memory
                             data_manager.predictions.free_memory()
 
-ProgressBar.terminate_renderer()
+finish_report()

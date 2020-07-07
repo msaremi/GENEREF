@@ -226,3 +226,26 @@ class ProgressBar(object):
     def length(self, value):
         self._length = value
         self._redraw()
+
+
+progress_bars = {}
+
+
+def report_progress(progress_bar=None, title=None, prefix=None, value=None, maximum=None, indentation=0,
+                    line_break=True, verbosity="progress_bars"):
+    if verbosity == "progress_bars":
+        if progress_bar not in progress_bars:
+            progress_bars[progress_bar] = ProgressBar(0, 1)
+
+            if len(progress_bars) == 1:
+                ProgressBar.init_renderer()
+
+        progress_bars[progress_bar].update(title=title, prefix=prefix, value=value, maximum=maximum)
+    elif verbosity == "log":
+        print_timed(f"{title}: {prefix} ({value} / {maximum})", indentation=indentation, start="\r" * (not line_break),
+                    end="\n" * line_break)
+
+
+def finish_report(verbosity="progress_bars"):
+    if verbosity == "progress_bars":
+        ProgressBar.terminate_renderer()
