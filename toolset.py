@@ -4,7 +4,6 @@ Use this file to generate the results based on the predictions
 
 import os
 import numpy as np
-from datetime import datetime as dt
 from itertools import permutations
 from networkdata import DataManager
 from config import load as load_config
@@ -15,16 +14,18 @@ from glob import iglob
 import argparse
 from inspect import signature
 import sys
+from utils import report_progress, finish_report
 
 
-def _str_to_tuple(string):
-    def _to_num(num_str: str):
-        try:
-            return int(num_str)
-        except ValueError:
-            return float(num_str)
+def __to_num(num_str: str):
+    try:
+        return int(num_str)
+    except ValueError:
+        return float(num_str)
 
-    return tuple(map(_to_num, filter(None, string[1:-1].split(','))))
+
+def __str_to_tuple(string):
+    return tuple(map(__to_num, filter(None, string[1:-1].split(','))))
 
 
 def generate_results(data_path: str = None, score_name: str = None):
@@ -42,14 +43,16 @@ def generate_results(data_path: str = None, score_name: str = None):
     p_values_path = config['p_values_path'] if config['model']['has_p_values'] else None
     self_loops = config['model']['has_self_loops']
 
-    for network in config['model']['networks']:
-        print(dt.now(), "Network", network)
-
+    for network_id, network in enumerate(config['model']['networks']):
+        report_progress(progress_bar='network', title="Network", prefix=network, value=network_id + 1,
+                        maximum=len(config['model']['networks']), indentation=0, verbosity=config['verbosity'])
         evaluator = evaluator_class(network=network, p_values_path=p_values_path, self_loops=self_loops)
         all_scores[network] = {}
 
-        for dataset in config['model']['datasets']:
-            print(dt.now(), "\t", "Dataset", dataset)
+        for dataset_id, dataset in enumerate(config['model']['datasets']):
+            report_progress(progress_bar='dset', title="Dataset Pack", prefix=dataset, value=dataset_id + 1,
+                            indentation=1, maximum=len(config['model']['datasets']), verbosity=config['verbosity'])
+
             dataset_path = os.path.join(config['datasets_path'], dataset)
             prediction_path = os.path.join(config['predictions_path'], dataset)
             goldstandard_path = config['goldstandards_path']
@@ -57,13 +60,17 @@ def generate_results(data_path: str = None, score_name: str = None):
 
             with data_manager:
                 num_experiments = len(data_manager.experiments)
+                num_iterations = min(config['max_level'], num_experiments + 1)
 
-                for i in range(1, min(config['max_level'], num_experiments + 1)):
+                for i in range(1, num_iterations):
                     first_level = i == 1
                     keys = list(permutations(range(num_experiments), i))
+                    report_progress(progress_bar='depth', title="Depth", prefix=str(i), maximum=num_iterations - 1,
+                                    value=i, indentation=2, verbosity=config['verbosity'])
 
-                    for key in keys:
-                        print(dt.now(), "\t\t", "Key", key)
+                    for key_id, key in enumerate(keys):
+                        report_progress(progress_bar='key', title="Dataset", prefix=str(key), value=key_id + 1,
+                                        maximum=len(keys), indentation=2, verbosity=config['verbosity'])
                         alphas = [0] if first_level else config['alpha_log2_values']
                         betas = [0] if first_level else config['beta_log2_values']
 
@@ -87,6 +94,8 @@ def generate_results(data_path: str = None, score_name: str = None):
             fname = os.path.join(config['results_path'], "%s_%s_%s.csv" % (network, str(key), score_name))
             all_scores[network][key].to_csv(fname)
 
+    finish_report(verbosity=config['verbosity'])
+
 
 def _load_results(data_path: str = None, score_name: str = None):
     """load saved results"""
@@ -104,7 +113,7 @@ def _load_results(data_path: str = None, score_name: str = None):
         for fname in iglob(fpattern):
             basename = os.path.basename(fname)
             strkey = basename[len(network) + 1:-len(score_name) - 5]
-            key = _str_to_tuple(strkey)
+            key = __str_to_tuple(strkey)
             all_scores[network][key] = pd.read_csv(fname, index_col=0, header=[0, 1])
 
     return all_scores
@@ -152,9 +161,33 @@ def _average_datasets(scores: pd.DataFrame, stack: bool = False):
     mean_scores = pd.DataFrame(data=mean_score_vals, columns=scores.columns, index=['avg'])
 
     if stack:
-        mean_scores = mean_scores.stack(level=-1).droplevel(level=0)
+        mean_scores = _stack_dataset(mean_scores)
 
     return mean_scores
+
+
+def _stack_dataset(scores: pd.DataFrame):
+    """unzips the last parameter"""
+    return scores.stack(level=-1).droplevel(level=0)
+
+
+def _max_dataset(scores: pd.DataFrame):
+    """finds the maximum score"""
+    return np.nanmax(scores.to_numpy())
+
+
+def _argmax_dataset(scores: pd.DataFrame):
+    """finds the optimal alpha and beta values"""
+    column = scores.columns[np.argmax(scores.to_numpy())]
+    return tuple(map(__to_num, column))
+
+
+def _argmax_denoised_dataset(scores: pd.DataFrame, quantile=0.9):
+    """finds the optimal alpha and beta values, denoised"""
+    scores_arr = scores.to_numpy().ravel()
+    indices = np.where(scores_arr >= np.quantile(scores_arr, quantile))
+    columns = [tuple(map(__to_num, scores.columns[index])) for index in indices[0]]
+    return tuple(np.mean(param) for param in zip(*columns))
 
 
 def report_results(data_path: str = None, score_name: str = None,

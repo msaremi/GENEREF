@@ -10,7 +10,7 @@ beta_log2_values:
 model:
   name: ecoli_subnetworks
   description: |-
-    E.coli. subnetworks of different size, each made independently and self-regulatory link removed
+    E. coli subnetworks of different size, each made independently and self-regulatory link removed
   folder: ecoli_subnetworks
   networks:
     - ecoli-40
@@ -25,4 +25,4 @@ model:
 learner_params:
   n_trees: 100
   max_features: sqrt
-trunk_size: 64
+trunk_size: 128

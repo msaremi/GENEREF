@@ -31,11 +31,13 @@ def get_regularization_matrix(w: WeightedNetwork):
 
 config = load_config(None if len(sys.argv) == 1 else sys.argv[1])
 
-for network_id, network in enumerate(config['model']['networks']):  # For DREAM4 there are 5 networks each with 100 genes
+# For DREAM4 there are 5 networks each with 100 genes
+for network_id, network in enumerate(config['model']['networks']):
     report_progress(progress_bar='network', title="Network", prefix=network, value=network_id + 1,
                     maximum=len(config['model']['networks']), indentation=0, verbosity=config['verbosity'])
 
-    for dataset_id, dataset in enumerate(config['model']['datasets']):  # There are 10 dataset folders. In the most cases, 1 folder is enough
+    # There are 10 dataset folders. In the most cases, 1 folder is enough
+    for dataset_id, dataset in enumerate(config['model']['datasets']):
         report_progress(progress_bar='dset', title="Dataset Pack", prefix=dataset, value=dataset_id + 1,
                         maximum=len(config['model']['datasets']), indentation=1, verbosity=config['verbosity'])
 
@@ -101,9 +103,9 @@ for network_id, network in enumerate(config['model']['networks']):  # For DREAM4
                                 n_trees=config['learner_params']['n_trees'],
                                 max_features=config['learner_params']['max_features'],
                                 callback=lambda j, n:
-                                report_progress(progress_bar='subproblem', title="Subproblem", prefix=str(j),
-                                                value=j + 1, maximum=n, indentation=5, line_break=False,
-                                                verbosity=config['verbosity'])
+                                    report_progress(progress_bar='subproblem', title="Subproblem", prefix=str(j),
+                                                    value=j + 1, maximum=n, indentation=5, line_break=False,
+                                                    verbosity=config['verbosity'])
                             )
                             predictor.fit(current_experiment, regularization)
                             prediction = predictor.network
@@ -117,4 +119,4 @@ for network_id, network in enumerate(config['model']['networks']):  # For DREAM4
                             # Store the predictions in the file and remove it from the memory
                             data_manager.predictions.free_memory()
 
-finish_report()
+finish_report(verbosity=config['verbosity'])
