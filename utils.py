@@ -193,9 +193,7 @@ class ProgressBar(object):
 
     @title.setter
     def title(self, value):
-        cls = type(self)
         self._title = value
-        cls._title_spacing = max(cls._title_spacing, len(value))
         self._redraw()
 
     @property
@@ -204,9 +202,7 @@ class ProgressBar(object):
 
     @prefix.setter
     def prefix(self, value):
-        cls = type(self)
         self._prefix = value
-        cls._prefix_spacing = max(cls._prefix_spacing, len(value))
         self._redraw()
 
     @property
