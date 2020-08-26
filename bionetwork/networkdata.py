@@ -115,7 +115,7 @@ class Loader:
         timeseries_list = np.split(timeseries_data[:, 1:], idx[1:], axis=0)
 
         try:
-            file_name = "%s_timeseries_perturbations.tsv" % self._network
+            file_name = "%s_timeseries_perturbations%s.tsv" % (self._network, key)
             # file_name = "%s_dream4_timeseries_perturbations.tsv" % self._network
             file_path = os.path.join(self._path, file_name)
             perturbation_data = DataIO.load_experiment_set(file_path, header=True)
@@ -236,7 +236,7 @@ class Experiment:
 
     @property
     def _normalized_data(self) -> np.ndarray:
-        return self._data / np.sqrt(np.var(self._data, axis=0))
+        return (self._data - np.mean(self._data, axis=0)) / np.std(self._data, axis=0)
 
     def normalize(self):
         self._data = self._normalized_data
@@ -296,10 +296,12 @@ class ExperimentSet:
             experiment.normalize()
 
     def normalize(self):
-        std = np.std(np.vstack([experiment.data for experiment in self._data]), axis=0)
+        data = np.vstack([experiment.data for experiment in self._data])
+        mean = np.mean(data, axis=0)
+        std = np.std(data, axis=0)
 
         for experiment in self._data:
-            experiment.data /= std
+            experiment.data = (experiment.data - mean) / std
 
 
 class TimeseriesExperimentSet(ExperimentSet):
