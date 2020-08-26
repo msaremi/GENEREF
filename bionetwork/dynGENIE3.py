@@ -196,7 +196,7 @@ def estimate_degradation_rates(TS_data, time_points):
             xmin = log(xmin)
             xmax = log(xmax)
 
-            alphas[i, j] = (xmax - xmin) / abs(tmin - tmax)
+            alphas[i, j] = (xmax - xmin) / (abs(tmin - tmax) + 1e-8)
 
     alphas = alphas.max(axis=0)
 
