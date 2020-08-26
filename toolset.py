@@ -9,6 +9,7 @@ from networkdata import DataManager
 from config import load as load_config
 import evaluation
 from sklearn.utils.extmath import cartesian
+from scipy.special import gamma
 import pandas as pd
 from glob import iglob
 import argparse
@@ -26,6 +27,14 @@ def __to_num(num_str: str):
 
 def __str_to_tuple(string):
     return tuple(map(__to_num, filter(None, string[1:-1].split(','))))
+
+
+def _selectivity_kumaraswamy(alpha: float, beta: float):
+    """
+    indicates how picky a kumaraswamy regularization mapping is.
+    returns the area between the kumaraswamy function and y = 1.
+    """
+    return gamma(1 + 1/alpha) * gamma(1 + beta) / gamma(1 + 1/alpha + beta)
 
 
 def generate_results(data_path: str = None, score_name: str = None):
