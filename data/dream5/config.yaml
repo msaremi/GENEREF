@@ -1,8 +1,18 @@
 ---
 alpha_log2_values:
-  - -4.68
+#  - -4.320 # Ecoli best validation auroc
+  - -4.416 # Ecoli best validation score -4.320
+  - -4.512 # Ecoli best validation score_aupr
+#  - -5.052 # Yeast best validation auroc
+#  - -4.862 # Yeast best validation score
+#  - -4.669 # Yeast best validation score_aupr
 beta_log2_values:
-  - +1.88
+#  - +1.990 # Ecoli best validation auroc
+  - +1.713 # Ecoli best validation score
+  - -0.564 # Ecoli best validation score_aupr
+#  - +2.196 # Yeast best validation auroc
+#  - +0.923 # Yeast best validation score
+#  - -0.399 # Yeast best validation score_aupr
 model:
   name: dream5
   description: |-
@@ -10,7 +20,7 @@ model:
   folder: dream5
   networks:
     - dream5_3
-    - dream5_4
+#    - dream5_4
   datasets:
     - '0'
   evaluator: DREAM5Evaluator
