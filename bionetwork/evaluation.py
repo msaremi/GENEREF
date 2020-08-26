@@ -81,7 +81,7 @@ class Evaluator:
         try:
             xs, probs = self._load_probs("AUPR")
         except FileNotFoundError:
-            raise Exception("AUROC p-value cannot be computed for this network")
+            raise Exception("AUPR p-value cannot be computed for this network")
 
         return np.interp(self.aupr, xs, probs)
 
