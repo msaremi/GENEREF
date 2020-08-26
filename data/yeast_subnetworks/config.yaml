@@ -16,6 +16,7 @@ model:
     - yeast-50
     - yeast-100
     - yeast-200
+    - yeast-400
     - yeast-800
     - yeast-1600
   datasets:
@@ -25,4 +26,4 @@ model:
 learner_params:
   n_trees: 100
   max_features: sqrt
-trunk_size: 500
+trunk_size: 30
