@@ -1,5 +1,5 @@
 ---
-model_name: ecoli_subnetworks
+model_name: dream5
 score_name: "auroc" # "auroc" or "aupr" or "auroc_p_value" or "aupr_p_value" or "score" or "score_aupr"
 verbosity: "progress_bars" # "log" or "progress_bars" or "suppressed"
 parallel_mode: "multiprocessing" # "multiprocessing" or "threading"
