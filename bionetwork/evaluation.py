@@ -89,15 +89,5 @@ class Evaluator:
 class DREAM5Evaluator(Evaluator):
     """Dream5 Network Evaluation"""
     def fit(self, labels, scores):
-        # Sine not all genes are in the goldstandards, extra genes are removed
-        labels[np.eye(labels.shape[0], dtype=bool)] = 0
-        regulators = np.any(labels, axis=1)
-        targets = np.any((np.any(labels, axis=0).T, regulators), axis=0)
-        regulators = np.where(regulators)
-        targets = np.where(targets)
-        targets, regulators = np.meshgrid(targets, regulators)
-
-        gs_labels = labels[regulators, targets]
-        gs_scores = scores[regulators, targets]
-        self._labels = np.asarray(gs_labels, dtype=np.int32).ravel()
-        self._scores = np.asarray(gs_scores, dtype=np.float64).ravel()
+        labels = np.pad(labels, ((0, scores.shape[0] - labels.shape[0]), (0, scores.shape[1] - labels.shape[1])))
+        super().fit(labels, scores)
